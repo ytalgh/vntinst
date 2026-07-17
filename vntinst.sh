@@ -90,14 +90,14 @@ update_vnt() {
         return
     fi
 
-    # 2. 获取本地版本
+    # 2. 获取本地版本 (使用正则提取 vX.X.X)
     if [ -f "$VNT_CLI" ]; then
-        LOCAL_VERSION=$($VNT_CLI --version 2>&1 | awk '{print $2}')
+        LOCAL_VERSION=$($VNT_CLI --version 2>&1 | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+')
     else
         LOCAL_VERSION="none"
     fi
 
-    echo "本地版本: $LOCAL_VERSION"
+    echo "本地版本: ${LOCAL_VERSION:-未知}"
     echo "最新版本: $LATEST_VERSION"
 
     # 3. 对比版本
