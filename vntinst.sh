@@ -28,9 +28,9 @@ check_root() {
     fi
 }
 
-# 3. 安装服务 (自动获取最新版)
+# 3. 安装服务
 install_vnt() {
-    echo "--- 开始安装 VNT (自动获取最新版) ---"
+    echo "--- 开始安装 VNT ---"
     read -p "请输入 -k Token (默认: ytalgh): " input_k
     K_VAL=${input_k:-ytalgh}
     read -p "请输入 -w 密码: " W_VAL
@@ -82,16 +82,32 @@ WantedBy=multi-user.target" | tee "$SERVICE_FILE" > /dev/null
 # 4. 更新 VNT 版本
 update_vnt() {
     echo "--- 开始检查 VNT 更新 ---"
-    LATEST_VERSION=$(curl -s https://api.github.com/repos/vnt-dev/vnt/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     
+    # 1. 获取 GitHub 最新版本
+    LATEST_VERSION=$(curl -s https://api.github.com/repos/vnt-dev/vnt/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     if [ -z "$LATEST_VERSION" ]; then
         echo "无法连接 GitHub，检查更新失败。"
         return
     fi
 
-    echo "检测到最新版本为: $LATEST_VERSION"
-    echo "正在下载并更新本地程序..."
+    # 2. 获取本地版本
+    if [ -f "$VNT_CLI" ]; then
+        LOCAL_VERSION=$($VNT_CLI --version 2>&1 | awk '{print $2}')
+    else
+        LOCAL_VERSION="none"
+    fi
 
+    echo "本地版本: $LOCAL_VERSION"
+    echo "最新版本: $LATEST_VERSION"
+
+    # 3. 对比版本
+    if [ "$LOCAL_VERSION" == "$LATEST_VERSION" ]; then
+        echo "当前已是最新版本，无需更新。"
+        return
+    fi
+
+    # 4. 执行更新
+    echo "检测到新版本，正在更新..."
     mkdir -p /tmp/vnt_tmp && cd /tmp/vnt_tmp
     DOWNLOAD_URL="https://github.com/vnt-dev/vnt/releases/download/${LATEST_VERSION}/vnt-x86_64-unknown-linux-musl-${LATEST_VERSION}.tar.gz"
     
@@ -147,7 +163,7 @@ check_root
 # 主循环
 while true; do
     echo -e "\n=== VNT 全局管理工具 ==="
-    echo "1. 安装 VNT 服务 (自动获取最新版)"
+    echo "1. 安装 VNT 服务"
     echo "2. 查看 VNT 状态"
     echo "3. 卸载 VNT 服务"
     echo "4. 更新 VNT 版本"
