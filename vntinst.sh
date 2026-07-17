@@ -28,7 +28,7 @@ check_root() {
     fi
 }
 
-# 3. 安装服务 (自动获取最新版本)
+# 3. 安装服务 (自动获取最新版)
 install_vnt() {
     echo "--- 开始安装 VNT (自动获取最新版) ---"
     read -p "请输入 -k Token (默认: ytalgh): " input_k
@@ -79,7 +79,37 @@ WantedBy=multi-user.target" | tee "$SERVICE_FILE" > /dev/null
     echo "--- 安装完成，版本 $LATEST_VERSION 已设为开机自启 ---"
 }
 
-# 4. 查看状态菜单
+# 4. 更新 VNT 版本
+update_vnt() {
+    echo "--- 开始检查 VNT 更新 ---"
+    LATEST_VERSION=$(curl -s https://api.github.com/repos/vnt-dev/vnt/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+    
+    if [ -z "$LATEST_VERSION" ]; then
+        echo "无法连接 GitHub，检查更新失败。"
+        return
+    fi
+
+    echo "检测到最新版本为: $LATEST_VERSION"
+    echo "正在下载并更新本地程序..."
+
+    mkdir -p /tmp/vnt_tmp && cd /tmp/vnt_tmp
+    DOWNLOAD_URL="https://github.com/vnt-dev/vnt/releases/download/${LATEST_VERSION}/vnt-x86_64-unknown-linux-musl-${LATEST_VERSION}.tar.gz"
+    
+    wget -q "$DOWNLOAD_URL"
+    if [ $? -eq 0 ]; then
+        systemctl stop vnt
+        tar -zxvf "vnt-x86_64-unknown-linux-musl-${LATEST_VERSION}.tar.gz" > /dev/null
+        mv vnt-cli "$VNT_CLI"
+        chmod +x "$VNT_CLI"
+        systemctl start vnt
+        echo "--- 更新完成，已更新至 $LATEST_VERSION 并重启服务 ---"
+    else
+        echo "下载更新包失败。"
+    fi
+    cd ~ && rm -rf /tmp/vnt_tmp
+}
+
+# 5. 查看状态菜单
 check_vnt_menu() {
     while true; do
         echo -e "\n--- 查看 VNT 状态 ---"
@@ -98,7 +128,7 @@ check_vnt_menu() {
     done
 }
 
-# 5. 卸载服务
+# 6. 卸载服务
 uninstall_vnt() {
     echo "--- 正在彻底卸载 VNT ---"
     systemctl stop vnt 2>/dev/null
@@ -120,13 +150,15 @@ while true; do
     echo "1. 安装 VNT 服务 (自动获取最新版)"
     echo "2. 查看 VNT 状态"
     echo "3. 卸载 VNT 服务"
-    echo "4. 退出"
-    read -p "请选择 (1-4): " choice
+    echo "4. 更新 VNT 版本"
+    echo "5. 退出"
+    read -p "请选择 (1-5): " choice
     case $choice in
         1) install_vnt ;;
         2) check_vnt_menu ;;
         3) uninstall_vnt ;;
-        4) echo "退出"; exit 0 ;;
+        4) update_vnt ;;
+        5) echo "退出"; exit 0 ;;
         *) echo "无效选择" ;;
     esac
 done
