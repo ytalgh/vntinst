@@ -41,16 +41,26 @@ WantedBy=multi-user.target" | sudo tee "$SERVICE_PATH" > /dev/null
     echo "--- 安装完成，服务已启动 ---"
 }
 
-status_vnt() {
-    sudo systemctl status vnt
+check_vnt_menu() {
+    echo "--- 查看 VNT ---"
+    echo "1. 查看服务状态"
+    echo "2. 查看当前状态"
+    echo "3. 查看设备列表"
+    read -p "请选择 (1-3): " sub_choice
+    case $sub_choice in
+        1) sudo systemctl status vnt ;;
+        2) $VNT_PATH --info ;;
+        3) $VNT_PATH --all ;;
+        *) echo "无效选择" ;;
+    esac
 }
 
 uninstall_vnt() {
     echo "--- 正在卸载 VNT ---"
     sudo systemctl stop vnt
     sudo systemctl disable vnt
-    sudo rm "$VNT_PATH"
-    sudo rm "$SERVICE_PATH"
+    sudo rm -f "$VNT_PATH"
+    sudo rm -f "$SERVICE_PATH"
     sudo systemctl daemon-reload
     echo "--- 卸载完成 ---"
 }
@@ -58,13 +68,13 @@ uninstall_vnt() {
 # 主菜单
 echo "VNT 管理脚本"
 echo "1. 安装 VNT"
-echo "2. 查看 VNT 服务状态"
+echo "2. 查看 VNT"
 echo "3. 卸载 VNT"
 read -p "请选择 (1-3): " choice
 
 case $choice in
     1) install_vnt ;;
-    2) status_vnt ;;
+    2) check_vnt_menu ;;
     3) uninstall_vnt ;;
     *) echo "无效选择" ;;
 esac
